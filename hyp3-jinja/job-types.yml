@@ -2,88 +2,94 @@ rtc_gamma:
   image_url: 626226570674.dkr.ecr.us-east-1.amazonaws.com/hyp3-rtc-gamma
   api_job_type: RTC_GAMMA
   parameters:
-    - commands:
-        - ++entrypoint
-        - hyp3_rtc_gamma_v2
-      position_priority: beginning
-    - name: resolution
-      default: 30.0
-      commands:
-        - --resolution
-        - Ref::resolution
-    - name: radiometry
-      default: gamma0
-      commands:
-        - --radiometry
-        - Ref::radiometry
-    - name: scale
-      default: power
-      commands:
-        - --scale
-        - Ref::scale
-    - name: dem_matching
-      default: false
-      commands:
-        - --dem-matching
-        - Ref::dem_matching
-    - name: include_dem
-      default: false
-      commands:
-        - --include-dem
-        - Ref::include_dem
-    - name: include_inc_map
-      default: false
-      commands:
-        - --include-inc-map
-        - Ref::include_inc_map
-    - name: granules
-      default: '""'
-      commands:
-        - Ref::granules
-      position_priority: end
+    granules: '""'
+    bucket: '!Ref ContentBucket'
+    bucket_prefix: ""
+    username: '!Ref EDLUsername'
+    password: '!Ref EDLPassword'
+    resolution: 30.0
+    radiometry: gamma0
+    scale: power
+    dem_matching: false
+    include_dem: false
+    include_inc_map: false
+  command:
+    - ++entrypoint
+    - hyp3_rtc_gamma_v2
+    - --username
+    - Ref::username
+    - --password
+    - Ref::password
+    - --bucket
+    - Ref::bucket
+    - --bucket-prefix
+    - Ref::bucket_prefix
+    - --resolution
+    - Ref::resolution
+    - --radiometry
+    - Ref::radiometry
+    - --scale
+    - Ref::scale
+    - --dem-matching
+    - Ref::dem_matching
+    - --include-dem
+    - Ref::include_dem
+    - --include-inc-map
+    - Ref::include_inc_map
+    - Ref::granules
   timeout: 5400
 
 insar_gamma:
   image_url: 626226570674.dkr.ecr.us-east-1.amazonaws.com/hyp3-rtc-gamma
   api_job_type: INSAR_GAMMA
   parameters:
-    - commands:
-        - ++entrypoint
-        - hyp3_insar_gamma_v2
-      position_priority: beginning
-    - name: include_inc_map
-      default: false
-      commands:
-        - --include-inc-map
-        - Ref::include_inc_map
-    - name: include_los_displacement
-      default: false
-      commands:
-        - --include_los_displacement
-        - Ref::include-los-displacement
-    - name: looks
-      default: 20x4
-      commands:
-        - --looks
-        - Ref::looks
-    - name: granules
-      default: '""'
-      commands:
-        - Ref::granules
-      position_priority: end
+    granules: '""'
+    bucket: '!Ref ContentBucket'
+    bucket_prefix: ""
+    username: '!Ref EDLUsername'
+    password: '!Ref EDLPassword'
+    include_inc_map: false
+    include_los_displacement: false
+    looks: 20x4
+  command:
+    - ++entrypoint
+    - hyp3_insar_gamma_v2
+    - --username
+    - Ref::username
+    - --password
+    - Ref::password
+    - --bucket
+    - Ref::bucket
+    - --bucket-prefix
+    - Ref::bucket_prefix
+    - --include-inc-map
+    - Ref::include_inc_map
+    - --include-los-displacement
+    - Ref::include_los_displacement
+    - --looks
+    - Ref::looks
+    - Ref::granules
   timeout: 5400
 
 autorift:
   image_url: 626226570674.dkr.ecr.us-east-1.amazonaws.com/hyp3-rtc-gamma
   api_job_type: AUTORIFT
   parameters:
-    - commands:
-        - ++entrypoint
-        - hyp3_autorift_v2
-      position_priority: beginning
-    - name: granules
-      default: '""'
-      commands:
-        - Ref::granules
-      position_priority: end
+    granules: '""'
+    bucket: '!Ref ContentBucket'
+    bucket_prefix: ""
+    username: '!Ref EDLUsername'
+    password: '!Ref EDLPassword'
+  command:
+    - ++entrypoint
+    - hyp3_autorift_v2
+    - --username
+    - Ref::username
+    - --password
+    - Ref::password
+    - --bucket
+    - Ref::bucket
+    - --bucket-prefix
+    - Ref::bucket_prefix
+    - Ref::granules
   timeout: 10800

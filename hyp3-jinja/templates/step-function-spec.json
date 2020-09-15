@@ -28,11 +28,48 @@
     "INSPECT_JOB_TYPE": {
       "Type": "Choice",
       "Choices": [
-        {{ json.dumps(step_function_job_choices)[1:-1] }}
+        {% for job in job_definitions %}
+        {
+          "Variable": "$.job_type",
+          "StringEquals": "{{ job['api_job_type'] }}",
+          "Next": "{{ job['api_job_type'] }}"
+        }{% if not loop.last %},{% endif %}
+
+        {% endfor %}
       ],
       "Default": "JOB_FAILED"
     },
-    {{ json.dumps(step_function_job_tasks)[1:-1] }}
+    {% for job_definition in job_definitions %}
+    "{{ job_definition['api_job_type'] }}": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::batch:submitJob.sync",
+      "Parameters": {
+        "JobDefinition": "{{job_definition['name'] }}",
+        "JobName.$": "$.job_id",
+        "JobQueue": "${JobQueueArn}",
+        "Parameters.$": "$.job_parameters"
+      },
+      "ResultPath": "$.results.job_processing",
+      "Next": "GET_FILES",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "MaxAttempts": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "JOB_FAILED",
+          "ResultPath": "$.results.job_processing"
+        }
+      ]
+    }{% if loop.last %},{% endif %}
+    {% endfor %}
     "GET_FILES": {
       "Type": "Task",
       "Resource": "${GetFilesLambdaArn}",

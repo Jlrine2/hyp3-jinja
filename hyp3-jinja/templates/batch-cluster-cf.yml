@@ -101,10 +101,8 @@ Resources:
     Properties:
       Type: container
       Parameters:
-        {% for parameter in job_definition['parameters'] %}
-        {% if 'name' in parameter %}
-        {{ parameter['name'] }}: {{ parameter['default'] }}
-        {% endif %}
+        {% for k, v in job_definition['parameters'].items() %}
+        {{ k }}: {{v }}
         {% endfor %}
       ContainerProperties:
         Image: !Ref <image>
@@ -112,10 +110,8 @@ Resources:
         Memory: 30000
         JobRoleArn: !GetAtt TaskRole.Arn
         Command:
-          {% for parameter in job_definition['parameters'] %}
-          {% for command in parameter['commands'] %}
+          {% for command in job_definition['command'] %}
           - {{ command }}
-          {% endfor %}
           {% endfor %}
       Timeout:
         AttemptDurationSeconds: {{job_definition['timeout']}}

@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  JobQueueArn:
+    Type: String
+
+  {% for job_definition in job_definitions %}
+  {{ job_definition['name'] }}:
+    Type: String
+  {% endfor %}
+
+  JobsTable:
+    Type: String
+
+  Bucket:
+    Type: String
+
+Resources:
+
+  StepFunction:
+    Type: AWS::StepFunctions::StateMachine
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - E3002
+    Properties:
+      RoleArn: !GetAtt StepFunctionRole.Arn
+      DefinitionS3Location: step-function.json
+      DefinitionSubstitutions:
+        JobQueueArn: !Ref JobQueueArn
+        {% for job_definition in job_definitions %}
+        {{ job_definition['name'] }}: !Ref {{ job_definition['name'] }}
+        {% endfor %}
+        UpdateDBLambdaArn: !GetAtt UpdateDB.Outputs.LambdaArn
+        GetFilesLambdaArn: !GetAtt GetFiles.Outputs.LambdaArn
+
+  StepFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service: states.amazonaws.com
+          Effect: Allow
+      Policies:
+        - PolicyName: policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action: batch:SubmitJob
+                Resource:
+                  - !Ref JobQueueArn
+                  {% for job_definition in job_definitions %}
+                  - !Ref {{ job_definition['name'] }}
+                  {% endfor %}
+              - Effect: Allow
+                Action:
+                  - events:PutTargets
+                  - events:PutRule
+                  - events:DescribeRule
+                Resource: !Sub "arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForBatchJobsRule"
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                 - !GetAtt UpdateDB.Outputs.LambdaArn
+                 - !GetAtt GetFiles.Outputs.LambdaArn
+
+  UpdateDB:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        JobsTable: !Ref JobsTable
+      TemplateURL: update-db/cloudformation.yml
+
+  GetFiles:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Bucket: !Ref Bucket
+      TemplateURL: get-files/cloudformation.yml
+
+  StartExecution:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        JobsTable: !Ref JobsTable
+        StepFunctionArn: !Ref StepFunction
+      TemplateURL: start-execution/cloudformation.yml

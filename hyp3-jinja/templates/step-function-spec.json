@@ -1,0 +1,106 @@
+{
+  "StartAt": "JOB_RUNNING",
+  "States": {
+    "JOB_RUNNING": {
+      "Type": "Task",
+      "Resource": "${UpdateDBLambdaArn}",
+      "Parameters": {
+        "job_id.$": "$.job_id",
+        "status_code": "RUNNING"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "MaxAttempts": 2
+        }
+      ],
+      "ResultPath": "$.results.job_running",
+      "Next": "ADD_PREFIX_TO_JOB_PARAMETERS"
+    },
+    "ADD_PREFIX_TO_JOB_PARAMETERS": {
+      "Type": "Pass",
+      "InputPath": "$.job_id",
+      "ResultPath": "$.job_parameters.bucket_prefix",
+      "Next": "INSPECT_JOB_TYPE"
+    },
+    "INSPECT_JOB_TYPE": {
+      "Type": "Choice",
+      "Choices": [
+        {{ json.dumps(step_function_job_choices)[1:-1] }}
+      ],
+      "Default": "JOB_FAILED"
+    },
+    {{ json.dumps(step_function_job_tasks)[1:-1] }}
+    "GET_FILES": {
+      "Type": "Task",
+      "Resource": "${GetFilesLambdaArn}",
+      "Parameters": {
+        "job_id.$": "$.job_id"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "MaxAttempts": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "JOB_FAILED",
+          "ResultPath": "$.results.get_files"
+        }
+      ],
+      "ResultPath": "$.results.get_files",
+      "Next": "JOB_SUCCEEDED"
+    },
+    "JOB_SUCCEEDED": {
+      "Type": "Task",
+      "Resource": "${UpdateDBLambdaArn}",
+      "Parameters": {
+        "job_id.$": "$.job_id",
+        "status_code": "SUCCEEDED",
+        "files.$": "$.results.get_files.files",
+        "browse_images.$": "$.results.get_files.browse_images",
+        "thumbnail_images.$": "$.results.get_files.thumbnail_images",
+        "expiration_time.$": "$.results.get_files.expiration_time"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "MaxAttempts": 2
+        }
+      ],
+      "ResultPath": "$.results.job_succeeded",
+      "End": true
+    },
+    "JOB_FAILED": {
+      "Type": "Task",
+      "Resource": "${UpdateDBLambdaArn}",
+      "Parameters": {
+        "job_id.$": "$.job_id",
+        "status_code": "FAILED"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "MaxAttempts": 2
+        }
+      ],
+      "ResultPath": "$.results.job_failed",
+      "Next": "FAIL"
+    },
+    "FAIL": {
+      "Type": "Fail"
+    }
+  }
+}
